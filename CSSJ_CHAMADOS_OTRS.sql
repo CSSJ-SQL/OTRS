@@ -10,7 +10,7 @@
 -- HISTÓRICO DE MODIFICAÇÃO:
 -- #ID  DATA        AUTOR    DESCRIÇÃO
 -- ---  ----------  -------  ------------------------------------------------
--- #00  ??/??/????  ROBERTO  Criação da Query - Chamado nº
+-- #00  ??/??/????  ROBERTO  Criação da Query - Chamado nº 201701041017063 
 -- #01  18/01/2017  ROBERTO  Criação e disponibilização da View.
 -- --------------------------------------------------------------------------  
   
