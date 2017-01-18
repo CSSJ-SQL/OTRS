@@ -1,0 +1,97 @@
+CREATE OR REPLACE FUNCTION FN_CSSJ_TEMPO_REAL_ATENDIMENTO(pTN INTEGER) RETURN VARCHAR2 AS --INTERVAL DAY TO SECOND AS
+
+-- -------------------------------------------------------------------------
+-- PROPOSITO:
+-- Exibir o tempo de atendimento real do chamado em dias, horas, minutos.
+--
+-- HISTÓRICO DE MODIFICAÇÃO:
+-- DATA        AUTORES  DESCRIÇÃO
+-- ----------  -------  ----------------------------------------------------
+-- 18/01/2017  ROBERTO  Retorna o tempo real de atendimento do chamado.
+--
+-- -------------------------------------------------------------------------
+  OLD_STATE            NUMBER := 0;
+  VTEMPO               INTERVAL DAY(9) TO SECOND;
+  VTEMPO2              INTERVAL DAY(9) TO SECOND;
+  VTEMPO_ANTERIOR      DATE;
+  VTN                  VARCHAR2(50) := pTN;--201612211016239;--201701041017063;--201701091017387 ;--201612211016251;--201701021016917;
+  I                    NUMBER := 1;
+  X                    NUMBER := 0;
+  VID                  NUMBER;
+  VTEMPO_CHAR          VARCHAR2(50);
+  
+  CURSOR C_CHAMADOS IS
+    SELECT T.TN, TH.STATE_ID, TRUNC(A.CREATE_TIME, 'MI') DATA, A.ID, T.TICKET_STATE_ID FROM TICKET_HISTORY TH
+      JOIN TICKET T ON TH.TICKET_ID = T.ID
+      JOIN ARTICLE A ON TH.ARTICLE_ID = A.ID
+      WHERE T.TN = VTN
+      ORDER BY TH.ID, A.ID ASC;
+  
+BEGIN
+  
+  FOR R_X IN C_CHAMADOS LOOP
+  X := C_CHAMADOS%ROWCOUNT;
+  END LOOP;
+  VTEMPO := '+000000000 00:00:0.000000';
+  
+  FOR R_CHAMADOS IN C_CHAMADOS LOOP
+    --DBMS_OUTPUT.PUT_LINE('I = ' || I || ' X = ' || X || ' STATE_ID = ' || R_CHAMADOS.STATE_ID || ' TICKET_STATE_ID = ' || R_CHAMADOS.TICKET_STATE_ID );
+    IF OLD_STATE = 41 AND R_CHAMADOS.ID != VID THEN
+      
+      VTEMPO2 := (R_CHAMADOS.DATA - VTEMPO_ANTERIOR) DAY(9) TO SECOND;
+      IF VTEMPO2 != '+000000000 00:00:00.000000' THEN
+        --DBMS_OUTPUT.PUT_LINE('LINHA Nº ' || I || ' SOMOU ' || ' TEMPO 1 - ' || VTEMPO || ' TEMPO2 - ' || VTEMPO2);
+        VTEMPO := VTEMPO + VTEMPO2;
+        
+        --DBMS_OUTPUT.PUT_LINE('LINHA Nº ' || I || ' TOTAL ' || VTEMPO);
+      END IF;
+    
+    END IF;
+    
+     IF I = X AND R_CHAMADOS.STATE_ID = 41 AND R_CHAMADOS.TICKET_STATE_ID = 41 THEN
+        --DBMS_OUTPUT.PUT_LINE('OK I = ' || I || ' X = ' || X);
+
+        VTEMPO2 := (SYSDATE - R_CHAMADOS.DATA) DAY(9) TO SECOND;
+        
+          IF VTEMPO2 != '+000000000 00:00:00.000000' THEN
+            --DBMS_OUTPUT.PUT_LINE('Nº ' || I || ' SOMOU ' || ' TEMPO 1 - ' || VTEMPO || ' TEMPO2 - ' || VTEMPO2);
+            VTEMPO := VTEMPO + VTEMPO2;
+
+            --DBMS_OUTPUT.PUT_LINE('Nº ' || I || ' TOTAL ' || VTEMPO);
+          END IF;
+          
+      END IF;
+    
+    OLD_STATE := R_CHAMADOS.STATE_ID;
+    VTEMPO_ANTERIOR := R_CHAMADOS.DATA;
+    VID := R_CHAMADOS.ID;
+    
+    I := I +1;
+  END LOOP;
+  
+  I := I - 1;
+  --DBMS_OUTPUT.PUT_LINE(I || ' FIM - ' || VTEMPO || ' - ' || VTEMPO2);
+  VTEMPO_CHAR := (SUBSTR(VTEMPO,8,3) || ' Dias ' || SUBSTR(VTEMPO,12,5) || 'h');
+  RETURN VTEMPO_CHAR;
+  --RETURN VTEMPO;
+  
+END;
+/
+-- EXTRARIR TEMPO
+/*
+      VTEMPO2 := NUMTODSINTERVAL((EXTRACT(DAY FROM VTEMPO + VTEMPO2)), 'DAY') 
+               + NUMTODSINTERVAL((EXTRACT(HOUR FROM VTEMPO + VTEMPO2)), 'HOUR') 
+               + NUMTODSINTERVAL((EXTRACT(MINUTE FROM VTEMPO + VTEMPO2)), 'MINUTE') 
+               + NUMTODSINTERVAL((EXTRACT(SECOND FROM VTEMPO + VTEMPO2)), 'SECOND');
+               DBMS_OUTPUT.PUT_LINE('2OI ' || VTEMPO2 );
+               */
+ SELECT T.TN, TH.STATE_ID, TO_CHAR(TRUNC(A.CREATE_TIME, 'MI'),'DD/MM/YYYY HH24:MI') DATA, A.ID, T.ID TID, T.TICKET_STATE_ID FROM TICKET_HISTORY TH
+      JOIN TICKET T ON TH.TICKET_ID = T.ID
+      JOIN ARTICLE A ON TH.ARTICLE_ID = A.ID
+      WHERE T.TN = 201701061017271 --VTN
+      ORDER BY TH.ID, A.ID ASC;
+      /
+SELECT TH.*, TO_CHAR(TH.CREATE_TIME,'DD/MM/YYYY HH24:MI') DATA FROM TICKET_HISTORY TH WHERE TH.TICKET_ID = 23341 ORDER BY TH.ID, TH.STATE_ID;      
+
+SELECT * from CSSJ_CHAMADOS_OTRS;
+SUBSTR((VTEMPO DAY(9) TO SECOND),8,3) || ' Dias ' || SUBSTR((VTEMPO DAY(9) TO SECOND),12,5) || 'h' TEMPO_ABERTO,
